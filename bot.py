@@ -82,68 +82,67 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(f"获取歌曲信息失败: {e}")
             return
 
-    if not song_info:
-        await query.edit_message_text("未找到该歌曲，请检查链接是否正确。")
-        return
+        if not song_info:
+            await query.edit_message_text("未找到该歌曲，请检查链接是否正确。")
+            return
 
-    result_parts = [
-        f"*{song_info['name']}* - {song_info['artist']}",
-        "",
-    ]
+        result_parts = [
+            f"*{song_info['name']}* - {song_info['artist']}",
+            "",
+        ]
 
-    # Lyrics
-    raw_lyric = lyrics_data.get("original", "")
-    tlyric = lyrics_data.get("translate", "")
+        # Lyrics
+        raw_lyric = lyrics_data.get("original", "")
+        tlyric = lyrics_data.get("translate", "")
 
-    if tlyric and lang_code == "zh":
-        # Use NetEase's built-in Chinese translation
-        clean_lyric_text = clean_lyrics(tlyric)
-        if clean_lyric_text:
-            result_parts.extend(["*歌词（中文）*", clean_lyric_text[:1500], ""])
-    elif raw_lyric:
-        clean_lyric_text = clean_lyrics(raw_lyric)
-        if clean_lyric_text:
-            if lang_code != "zh":
-                try:
-                    chunk = clean_lyric_text[:2000]
-                    translated = await translate(
-                        client, chunk, target_lang,
-                        BAIDU_APP_ID, BAIDU_SECRET_KEY,
-                    )
-                    result_parts.extend([f"*歌词（{target_lang}）*", translated, ""])
-                except Exception as e:
-                    result_parts.extend([
-                        f"*歌词翻译失败*: {str(e)[:100]}",
-                        clean_lyric_text[:800],
-                        "",
-                    ])
-            else:
-                result_parts.extend(["*歌词*", clean_lyric_text[:1500], ""])
+        if tlyric and lang_code == "zh":
+            clean_lyric_text = clean_lyrics(tlyric)
+            if clean_lyric_text:
+                result_parts.extend(["*歌词（中文）*", clean_lyric_text[:1500], ""])
+        elif raw_lyric:
+            clean_lyric_text = clean_lyrics(raw_lyric)
+            if clean_lyric_text:
+                if lang_code != "zh":
+                    try:
+                        chunk = clean_lyric_text[:2000]
+                        translated = await translate(
+                            client, chunk, target_lang,
+                            BAIDU_APP_ID, BAIDU_SECRET_KEY,
+                        )
+                        result_parts.extend([f"*歌词（{target_lang}）*", translated, ""])
+                    except Exception as e:
+                        result_parts.extend([
+                            f"*歌词翻译失败*: {str(e)[:100]}",
+                            clean_lyric_text[:800],
+                            "",
+                        ])
+                else:
+                    result_parts.extend(["*歌词*", clean_lyric_text[:1500], ""])
 
-    # Hot comments
-    if comments:
-        result_parts.append(f"*热评 TOP{len(comments)}（{target_lang}）*")
-        result_parts.append("")
-
-        for i, c in enumerate(comments, 1):
-            content = c["content"]
-            nickname = c["nickname"]
-            likes = c["liked_count"]
-
-            if lang_code == "zh":
-                translated = content
-            else:
-                try:
-                    translated = await translate(
-                        client, content[:500], target_lang,
-                        BAIDU_APP_ID, BAIDU_SECRET_KEY,
-                    )
-                except Exception:
-                    translated = content
-
-            result_parts.append(f"{i}. {nickname} [👍{likes}]")
-            result_parts.append(f"_{translated}_")
+        # Hot comments
+        if comments:
+            result_parts.append(f"*热评 TOP{len(comments)}（{target_lang}）*")
             result_parts.append("")
+
+            for i, c in enumerate(comments, 1):
+                content = c["content"]
+                nickname = c["nickname"]
+                likes = c["liked_count"]
+
+                if lang_code == "zh":
+                    translated = content
+                else:
+                    try:
+                        translated = await translate(
+                            client, content[:500], target_lang,
+                            BAIDU_APP_ID, BAIDU_SECRET_KEY,
+                        )
+                    except Exception:
+                        translated = content
+
+                result_parts.append(f"{i}. {nickname} [👍{likes}]")
+                result_parts.append(f"_{translated}_")
+                result_parts.append("")
 
     final_text = "\n".join(result_parts)
 
