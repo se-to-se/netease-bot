@@ -1,6 +1,7 @@
 # Netease TG Bot
 
 Telegram 机器人，发送网易云音乐链接即可获得歌词翻译 + 热评翻译，支持中日俄英四种语言。
+我的机器人NetEase Cloud Music。@ForYunagift_bot
 
 ## 功能
 
