@@ -10,6 +10,7 @@ NETEASE_API_BASE = os.getenv(
     "NETEASE_API_BASE",
     "https://netease-cloud-music-api-omega-navy.vercel.app"
 )
+TUTORIAL_IMAGES = os.getenv("TUTORIAL_IMAGES", "").split(",") if os.getenv("TUTORIAL_IMAGES") else []
 
 if not TG_BOT_TOKEN:
     raise ValueError("TG_BOT_TOKEN 未设置，请在 .env 文件中配置")

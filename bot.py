@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import httpx
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -11,8 +11,13 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from config import TG_BOT_TOKEN, BAIDU_APP_ID, BAIDU_SECRET_KEY, NETEASE_API_BASE
-from netease import parse_song_id, get_song_info, get_lyrics, get_hot_comments, clean_lyrics
+from config import (
+    TG_BOT_TOKEN, BAIDU_APP_ID, BAIDU_SECRET_KEY,
+    NETEASE_API_BASE, TUTORIAL_IMAGES,
+)
+from netease import (
+    find_song_id, get_song_info, get_lyrics, get_hot_comments, clean_lyrics,
+)
 from translate import translate, LANG_DISPLAY
 
 logging.basicConfig(
@@ -21,23 +26,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+WELCOME_TEXT = (
+    "Hi! 发送网易云音乐链接给我，我帮你翻译歌词和热评。\n\n"
+    "支持的翻译语言：中文 / 日语 / 俄语 / 英语\n\n"
+    "示例: https://music.163.com/#/song?id=722928"
+)
+
+
+async def _send_tutorial(update: Update):
+    """Send tutorial images (if configured) followed by welcome text."""
+    valid_images = [url for url in TUTORIAL_IMAGES if url.strip()]
+    if valid_images:
+        media = [InputMediaPhoto(media=url) for url in valid_images[:6]]
+        await update.message.reply_media_group(media=media)
+    await update.message.reply_text(WELCOME_TEXT)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Hi! 发送网易云音乐链接给我，我帮你翻译歌词和热评。\n\n"
-        "支持的翻译语言：中文 / 日语 / 俄语 / 英语\n\n"
-        "示例: https://music.163.com/song?id=123456"
-    )
+    await _send_tutorial(update)
+
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_tutorial(update)
+
+
+async def gift_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Моей любимой Юне")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
-    song_id = parse_song_id(text)
+
+    timeout = httpx.Timeout(30.0, connect=15.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        song_id = await find_song_id(client, text)
 
     if not song_id:
         await update.message.reply_text(
             "请发送有效的网易云音乐链接。\n"
-            "格式: https://music.163.com/song?id=歌曲ID"
+            "支持 163cn.tv 短链 和 music.163.com 标准链接\n"
+            "格式示例: https://music.163.com/#/song?id=722928"
         )
         return
 
@@ -119,7 +147,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     result_parts.extend(["*歌词*", clean_lyric_text[:1500], ""])
 
-        # Hot comments — translate one by one with delay to avoid rate limit
+        # Hot comments
         if comments:
             result_parts.append(f"*热评 TOP{len(comments)}（{target_lang}）*")
             result_parts.append("")
@@ -133,7 +161,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     translated = content
                 else:
                     try:
-                        await asyncio.sleep(0.6)  # Baidu free tier: 1 QPS (lyrics was previous request)
+                        await asyncio.sleep(0.6)
                         translated = await translate(
                             client, content[:500], target_lang,
                             BAIDU_APP_ID, BAIDU_SECRET_KEY,
@@ -148,14 +176,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     final_text = "\n".join(result_parts)
 
-    # Telegram message limit: 4096 chars
     if len(final_text) > 4000:
         final_text = final_text[:3950] + "\n\n...(内容过长已截断)"
 
     try:
         await query.edit_message_text(final_text, parse_mode="Markdown")
     except Exception:
-        # Fallback without formatting if Markdown parsing fails
         plain_text = "\n".join(
             p.replace("*", "").replace("_", "") for p in result_parts
         )
@@ -167,8 +193,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(TG_BOT_TOKEN).build()
 
+    # Easter egg: "gift" triggers a hidden message (must be checked before generic handler)
+    app.add_handler(MessageHandler(
+        filters.TEXT & filters.Regex(r"^(?i)\s*gift\s*$"), gift_handler,
+    ))
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND, handle_message,
+    ))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
     logger.info("Bot is running...")
