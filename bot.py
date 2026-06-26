@@ -135,8 +135,13 @@ T = {
 
 
 def _lang(update: Update) -> str:
-    """Get the UI language for this chat. Default zh."""
-    cid = update.effective_chat.id if update.effective_chat else 0
+    """Get the UI language for this chat. Default zh.
+    Accepts Update, CallbackQuery, or any object with .message.chat_id."""
+    cid = 0
+    if hasattr(update, "effective_chat") and update.effective_chat:
+        cid = update.effective_chat.id
+    elif hasattr(update, "message") and update.message:
+        cid = update.message.chat_id
     return USER_LANGS.get(cid, "zh")
 
 
