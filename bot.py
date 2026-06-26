@@ -119,7 +119,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     result_parts.extend(["*歌词*", clean_lyric_text[:1500], ""])
 
-        # Hot comments
+        # Hot comments — translate one by one with delay to avoid rate limit
         if comments:
             result_parts.append(f"*热评 TOP{len(comments)}（{target_lang}）*")
             result_parts.append("")
@@ -133,6 +133,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     translated = content
                 else:
                     try:
+                        if i > 1:
+                            await asyncio.sleep(0.6)  # Baidu free tier: 1 QPS
                         translated = await translate(
                             client, content[:500], target_lang,
                             BAIDU_APP_ID, BAIDU_SECRET_KEY,
