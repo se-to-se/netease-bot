@@ -58,6 +58,18 @@ def parse_song_id(text: str) -> int | None:
 
 
 def clean_lyrics(lrc_text: str) -> str:
+    # Remove timestamp tags [00:00.00]
     cleaned = re.sub(r"\[.*?\]", "", lrc_text)
+    # Remove metadata lines like: 作词 : xxx / 作曲 : xxx / 编曲 : xxx / 制作人 : xxx
+    cleaned = re.sub(
+        r"^(作词|作曲|编曲|制作人|演唱|混音|录音|母带|吉他|贝斯|键盘|鼓手|和声|和音|监制|发行)"
+        r".*?[\r\n]+",
+        "",
+        cleaned,
+        flags=re.MULTILINE,
+    )
+    # Remove "未经著作权人许可..." copyright notice
+    cleaned = re.sub(r"^未经.*?[\r\n]+", "", cleaned, flags=re.MULTILINE)
+    # Collapse multiple blank lines
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()

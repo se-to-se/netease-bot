@@ -1,6 +1,9 @@
 import hashlib
+import logging
 import random
 import httpx
+
+logger = logging.getLogger(__name__)
 
 BAIDU_API = "https://fanyi-api.baidu.com/api/trans/vip/translate"
 
@@ -26,6 +29,9 @@ async def translate(
     app_id: str,
     secret_key: str,
 ) -> str:
+    if not text or not text.strip():
+        return text
+
     api_lang = LANG_MAP.get(target_lang, "en")
 
     salt = str(random.randint(32768, 65536))
@@ -56,8 +62,9 @@ async def translate(
         "52002": "系统错误，请重试",
         "52003": "未认证用户，请检查 APP_ID",
         "54000": "必填参数为空",
-        "58000": "客户端IP非法，请检查注册信息",
+        "58000": "客户端IP非法，请检查注册信息（需要在百度翻译控制台设置IP白名单为 0.0.0.0/0）",
         "54005": "长文本翻译请求频率过高，请稍后重试",
     }
     error_msg = error_map.get(error_code, f"翻译失败 (code: {error_code})")
+    logger.warning("Baidu translate error: code=%s text=%s", error_code, text[:50])
     raise Exception(error_msg)

@@ -137,7 +137,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             client, content[:500], target_lang,
                             BAIDU_APP_ID, BAIDU_SECRET_KEY,
                         )
-                    except Exception:
+                    except Exception as e:
+                        logger.warning("Comment %d translation failed: %s", i, e)
                         translated = content
 
                 result_parts.append(f"{i}. {nickname} [👍{likes}]")
