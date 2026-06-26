@@ -133,8 +133,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     translated = content
                 else:
                     try:
-                        if i > 1:
-                            await asyncio.sleep(0.6)  # Baidu free tier: 1 QPS
+                        await asyncio.sleep(0.6)  # Baidu free tier: 1 QPS (lyrics was previous request)
                         translated = await translate(
                             client, content[:500], target_lang,
                             BAIDU_APP_ID, BAIDU_SECRET_KEY,

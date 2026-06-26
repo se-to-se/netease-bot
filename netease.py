@@ -60,16 +60,19 @@ def parse_song_id(text: str) -> int | None:
 def clean_lyrics(lrc_text: str) -> str:
     # Remove timestamp tags [00:00.00]
     cleaned = re.sub(r"\[.*?\]", "", lrc_text)
-    # Remove metadata lines like: 作词 : xxx / 作曲 : xxx / 编曲 : xxx / 制作人 : xxx
+    # Remove credit/metadata lines (allow leading whitespace, handle both : and ：
     cleaned = re.sub(
-        r"^(作词|作曲|编曲|制作人|演唱|混音|录音|母带|吉他|贝斯|键盘|鼓手|和声|和音|监制|发行)"
+        r"^\s*(?:作词|作曲|编曲|制作人|演唱|混音|录音|母带|吉他|贝斯|键盘|"
+        r"鼓手|和声|和音|监制|发行|文案|封面|翻译|Lyricist|Composer)"
         r".*?[\r\n]+",
         "",
         cleaned,
-        flags=re.MULTILINE,
+        flags=re.MULTILINE | re.IGNORECASE,
     )
     # Remove "未经著作权人许可..." copyright notice
-    cleaned = re.sub(r"^未经.*?[\r\n]+", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^\s*未经.*?[\r\n]+", "", cleaned, flags=re.MULTILINE)
+    # Remove lines that are just a single name (common in Japanese song credits)
+    cleaned = re.sub(r"^\s*(?:三|Yamada|Tanaka)\w*\s*$", "", cleaned, flags=re.MULTILINE)
     # Collapse multiple blank lines
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
