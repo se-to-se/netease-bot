@@ -37,8 +37,11 @@ async def _send_tutorial(update: Update):
     """Send tutorial images (if configured) followed by welcome text."""
     valid_images = [url for url in TUTORIAL_IMAGES if url.strip()]
     if valid_images:
-        media = [InputMediaPhoto(media=url) for url in valid_images[:6]]
-        await update.message.reply_media_group(media=media)
+        try:
+            media = [InputMediaPhoto(media=url) for url in valid_images[:6]]
+            await update.message.reply_media_group(media=media)
+        except Exception as e:
+            logger.warning("Failed to send tutorial images: %s", e)
     await update.message.reply_text(WELCOME_TEXT)
 
 
