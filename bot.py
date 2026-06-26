@@ -195,7 +195,7 @@ def main():
 
     # Easter egg: "gift" triggers a hidden message (must be checked before generic handler)
     app.add_handler(MessageHandler(
-        filters.TEXT & filters.Regex(r"^(?i)\s*gift\s*$"), gift_handler,
+        filters.TEXT & filters.Regex(r"(?i)^\s*gift\s*$"), gift_handler,
     ))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
