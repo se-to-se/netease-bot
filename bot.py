@@ -173,21 +173,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Send 6 tutorial images one by one."""
+    """Send 6 tutorial images one by one (download locally first to avoid URL issues)."""
     valid_images = [url for url in TUTORIAL_IMAGES if url.strip()]
     if not valid_images:
         await update.message.reply_text(_t(update, "tutorial_unconfigured"))
         return
 
     failed = 0
-    for i, url in enumerate(valid_images[:6], 1):
-        try:
-            await update.message.reply_photo(photo=url)
-            if i < len(valid_images[:6]):
-                await asyncio.sleep(0.3)  # Prevent flood
-        except Exception as e:
-            logger.warning("Tutorial image %d failed: %s", i, e)
-            failed += 1
+    async with httpx.AsyncClient(timeout=30) as http:
+        for i, url in enumerate(valid_images[:6], 1):
+            try:
+                # Download the image bytes so Telegram doesn't need to fetch the URL
+                r = await http.get(url, follow_redirects=True)
+                r.raise_for_status()
+                await update.message.reply_photo(
+                    photo=r.content,
+                    filename=f"tutorial_{i}.png",
+                )
+                if i < len(valid_images[:6]):
+                    await asyncio.sleep(1.0)  # Telegram flood control
+            except Exception as e:
+                logger.warning("Tutorial image %d failed: %s", i, e)
+                failed += 1
 
     if failed:
         await update.message.reply_text(
