@@ -29,24 +29,34 @@ logger = logging.getLogger(__name__)
 WELCOME_TEXT = (
     "Hi! 发送网易云音乐链接给我，我帮你翻译歌词和热评。\n\n"
     "支持的翻译语言：中文 / 日语 / 俄语 / 英语\n\n"
-    "示例: https://music.163.com/#/song?id=722928"
+    "示例: https://music.163.com/song?id=1895498022"
 )
 
 
-async def _send_tutorial(update: Update):
-    """Send tutorial images (if configured) followed by welcome text."""
-    valid_images = [url for url in TUTORIAL_IMAGES if url.strip()]
-    if valid_images:
-        try:
-            media = [InputMediaPhoto(media=url) for url in valid_images[:6]]
-            await update.message.reply_media_group(media=media)
-        except Exception as e:
-            logger.warning("Failed to send tutorial images: %s", e)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send welcome message only (no images)."""
     await update.message.reply_text(WELCOME_TEXT)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _send_tutorial(update)
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send 6 tutorial images one by one."""
+    valid_images = [url for url in TUTORIAL_IMAGES if url.strip()]
+    if not valid_images:
+        await update.message.reply_text("教程图片未配置。")
+        return
+
+    failed = 0
+    for i, url in enumerate(valid_images[:6], 1):
+        try:
+            await update.message.reply_photo(photo=url)
+        except Exception as e:
+            logger.warning("Tutorial image %d failed: %s", i, e)
+            failed += 1
+
+    if failed:
+        await update.message.reply_text(
+            f"教程图片已发送（{len(valid_images[:6]) - failed}/{len(valid_images[:6])} 张成功）。"
+        )
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
