@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 WELCOME_TEXT = (
     "Hi! 发送网易云音乐链接给我，我帮你翻译歌词和热评。\n\n"
     "支持的翻译语言：中文 / 日语 / 俄语 / 英语\n\n"
-    "示例: https://music.163.com/song?id=1895498022"
+    "示例: https://music.163.com/song?id=722928"
 )
 
 
