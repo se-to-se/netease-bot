@@ -51,7 +51,8 @@ async def translate(
     result = resp.json()
 
     if "trans_result" in result:
-        return result["trans_result"][0]["dst"]
+        # Baidu splits multiline text and returns array — rejoin with newline
+        return "\n".join(r["dst"] for r in result["trans_result"])
 
     error_code = result.get("error_code", "")
     error_map = {
