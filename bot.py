@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import httpx
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 WELCOME_TEXT = (
     "Hi! 发送网易云音乐链接给我，我帮你翻译歌词和热评。\n\n"
-    "支持的翻译语言：中文 / 日语 / 俄语 / 英语\n\n"
+    "支持的翻译语言：中文 / English / 日本語 / Русский\n\n"
     "示例: https://music.163.com/song?id=722928"
 )
 
@@ -59,10 +59,6 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _send_tutorial(update)
-
-
 async def gift_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Моей любимой Юне")
 
@@ -85,11 +81,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("中文", callback_data=f"zh_{song_id}"),
-            InlineKeyboardButton("日本語", callback_data=f"ja_{song_id}"),
+            InlineKeyboardButton("English", callback_data=f"en_{song_id}"),
         ],
         [
+            InlineKeyboardButton("日本語", callback_data=f"ja_{song_id}"),
             InlineKeyboardButton("Русский", callback_data=f"ru_{song_id}"),
-            InlineKeyboardButton("English", callback_data=f"en_{song_id}"),
         ],
     ])
     await update.message.reply_text(
